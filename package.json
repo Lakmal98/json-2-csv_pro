@@ -13,6 +13,7 @@
     "@types/react-dom": "^17.0.9",
     "json-2-csv": "^3.14.4",
     "react": "^17.0.2",
+    "react-csv-to-table": "0.0.4",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
     "typescript": "^4.4.3",
