@@ -1,5 +1,6 @@
 import {
   Button,
+  Container,
   FormControl,
   FormHelperText,
   TextareaAutosize,
@@ -34,6 +35,7 @@ export default class Upload extends Component<Props, State> {
 
     this.download = this.download.bind(this);
     this.handleChange = this.handleChange.bind(this);
+    this.handleCheckboxChange = this.handleCheckboxChange.bind(this);
   }
 
   handleChange = (event: any) => {
@@ -87,6 +89,18 @@ export default class Upload extends Component<Props, State> {
     a.click();
   }
 
+  handleCheckboxChange(e: {
+    target: { value: string; checked: boolean };
+  }): void {
+    const { excludes } = this.state;
+    const { value } = e.target;
+    if (value) this.setState({ excludes: [...excludes, value] });
+    else
+      this.setState({
+        excludes: excludes.filter((item) => item !== value),
+      });
+  }
+
   render(): JSX.Element {
     let { csv, headers, error } = this.state;
     //if limit is exceeded, get the first 500 lines
@@ -98,7 +112,7 @@ export default class Upload extends Component<Props, State> {
     }
 
     return (
-      <>
+      <Container disableGutters={true}>
         <FormControl>
           <TextareaAutosize
             minRows={10}
@@ -126,16 +140,8 @@ export default class Upload extends Component<Props, State> {
                     id={header}
                     type="checkbox"
                     value={header}
-                    onChange={(e) => {
-                      const { excludes } = this.state;
-                      const { value } = e.target;
-                      if (excludes.includes(value)) {
-                        excludes.splice(excludes.indexOf(value), 1);
-                      } else {
-                        excludes.push(value);
-                      }
-                      this.setState({ excludes });
-                    }}
+                    checked
+                    onChange={this.handleCheckboxChange}
                   />
                   <label htmlFor={header}>{header}</label>
                 </span>
@@ -146,7 +152,7 @@ export default class Upload extends Component<Props, State> {
         <div className="csv">
           <CsvToHtmlTable data={csv} csvDelimiter="," />
         </div>
-      </>
+      </Container>
     );
   }
 }
