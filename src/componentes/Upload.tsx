@@ -1,5 +1,10 @@
 import {
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   FormHelperText,
   TextareaAutosize,
@@ -12,6 +17,10 @@ interface State {
   json: Object;
   prettify: any;
   csv: any;
+  excludes: string[];
+  headers: string[];
+  dialogOpen: boolean;
+  error: string;
 }
 
 const LIMIT = 500;
@@ -24,30 +33,53 @@ export default class Upload extends Component<Props, State> {
       json: {},
       prettify: "",
       csv: "",
+      excludes: [],
+      headers: [],
+      dialogOpen: false,
+      error: "",
     };
 
     this.download = this.download.bind(this);
+    this.handleChange = this.handleChange.bind(this);
+    this.handleClose = this.handleClose.bind(this);
   }
 
   handleChange = (event: any) => {
     try {
-      this.convert(JSON.parse(event.target.value));
+      // check event.target.value is not empty or spaces
+      if (event.target.value.trim() !== "")
+        this.convert(JSON.parse(event.target.value));
+      this.setState({ error: "" });
     } catch (error) {
-      console.log("an error");
+      this.setState({ error: "Invalid JSON input" });
     }
   };
 
   convert(json: any) {
     const converter = require("json-2-csv");
+    const { excludes } = this.state;
 
     const callbackFunction = (err: any, csv: any) => {
       if (err) console.log("An Error");
       else {
-        this.setState({ json, csv });
+        const headers = csv.split("\n")[0].split(",");
+        this.setState({ json, csv, headers, dialogOpen: true });
       }
     };
 
-    converter.json2csv(json, callbackFunction);
+    const options = {
+      checkSchemaDifferences: false,
+      emptyFieldValue: "",
+      delimiter: {
+        wrap: "\n",
+        field: ",",
+        eol: "\n",
+      },
+      excelBOM: true,
+      excludeKeys: [...excludes],
+    };
+
+    converter.json2csv(json, callbackFunction, options);
   }
 
   download(): void {
@@ -63,9 +95,12 @@ export default class Upload extends Component<Props, State> {
     a.click();
   }
 
-  render(): JSX.Element {
-    let { csv } = this.state;
+  handleClose(): void {
+    this.setState({ dialogOpen: false });
+  }
 
+  render(): JSX.Element {
+    let { csv, dialogOpen, headers, error } = this.state;
     //if limit is exceeded, get the first 500 lines
     if (csv.length > LIMIT) {
       csv = csv
@@ -89,11 +124,54 @@ export default class Upload extends Component<Props, State> {
             Enter an array of objects in JSON format
           </FormHelperText>
         </FormControl>
-        <Button color="primary" variant="contained" onClick={this.download}>
-          Download
-        </Button>
+        {error || !csv ? (
+          <span>{error}</span>
+        ) : (
+          <Button color="primary" variant="contained" onClick={this.download}>
+            Download
+          </Button>
+        )}
         <div className="csv">
           <CsvToHtmlTable data={csv} csvDelimiter="," />
+        </div>
+
+        <div>
+          <Dialog
+            open={dialogOpen}
+            // TransitionComponent={Transition}
+            keepMounted
+            // onClose={handleClose}
+            aria-describedby="alert-dialog-slide-description"
+          >
+            <DialogTitle>{"Use Google's location service?"}</DialogTitle>
+            <DialogContent>
+              <DialogContentText id="alert-dialog-slide-description">
+                {headers.map((header: string) => (
+                  <div key={header}>
+                    <input
+                      type="checkbox"
+                      value={header}
+                      onChange={(e) => {
+                        const { excludes } = this.state;
+                        const { value } = e.target;
+                        if (excludes.includes(value)) {
+                          excludes.splice(excludes.indexOf(value), 1);
+                        } else {
+                          excludes.push(value);
+                        }
+                        this.setState({ excludes });
+                      }}
+                    />
+                    {header}
+                  </div>
+                ))}
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={this.handleClose}>close</Button>
+              {/* <Button onClick={handleClose}>Agree</Button> */}
+            </DialogActions>
+          </Dialog>
         </div>
       </>
     );
