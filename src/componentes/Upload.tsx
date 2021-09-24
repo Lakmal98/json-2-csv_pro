@@ -1,10 +1,5 @@
 import {
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   FormControl,
   FormHelperText,
   TextareaAutosize,
@@ -19,7 +14,6 @@ interface State {
   csv: any;
   excludes: string[];
   headers: string[];
-  dialogOpen: boolean;
   error: string;
 }
 
@@ -35,13 +29,11 @@ export default class Upload extends Component<Props, State> {
       csv: "",
       excludes: [],
       headers: [],
-      dialogOpen: false,
       error: "",
     };
 
     this.download = this.download.bind(this);
     this.handleChange = this.handleChange.bind(this);
-    this.handleClose = this.handleClose.bind(this);
   }
 
   handleChange = (event: any) => {
@@ -63,7 +55,7 @@ export default class Upload extends Component<Props, State> {
       if (err) console.log("An Error");
       else {
         const headers = csv.split("\n")[0].split(",");
-        this.setState({ json, csv, headers, dialogOpen: true });
+        this.setState({ json, csv, headers });
       }
     };
 
@@ -95,12 +87,8 @@ export default class Upload extends Component<Props, State> {
     a.click();
   }
 
-  handleClose(): void {
-    this.setState({ dialogOpen: false });
-  }
-
   render(): JSX.Element {
-    let { csv, dialogOpen, headers, error } = this.state;
+    let { csv, headers, error } = this.state;
     //if limit is exceeded, get the first 500 lines
     if (csv.length > LIMIT) {
       csv = csv
@@ -127,51 +115,36 @@ export default class Upload extends Component<Props, State> {
         {error || !csv ? (
           <span>{error}</span>
         ) : (
-          <Button color="primary" variant="contained" onClick={this.download}>
-            Download
-          </Button>
+          <>
+            <Button color="primary" variant="contained" onClick={this.download}>
+              Download
+            </Button>
+            <div className="headers">
+              {headers.map((header: string) => (
+                <span key={header}>
+                  <input
+                    id={header}
+                    type="checkbox"
+                    value={header}
+                    onChange={(e) => {
+                      const { excludes } = this.state;
+                      const { value } = e.target;
+                      if (excludes.includes(value)) {
+                        excludes.splice(excludes.indexOf(value), 1);
+                      } else {
+                        excludes.push(value);
+                      }
+                      this.setState({ excludes });
+                    }}
+                  />
+                  <label htmlFor={header}>{header}</label>
+                </span>
+              ))}
+            </div>
+          </>
         )}
         <div className="csv">
           <CsvToHtmlTable data={csv} csvDelimiter="," />
-        </div>
-
-        <div>
-          <Dialog
-            open={dialogOpen}
-            // TransitionComponent={Transition}
-            keepMounted
-            // onClose={handleClose}
-            aria-describedby="alert-dialog-slide-description"
-          >
-            <DialogTitle>{"Use Google's location service?"}</DialogTitle>
-            <DialogContent>
-              <DialogContentText id="alert-dialog-slide-description">
-                {headers.map((header: string) => (
-                  <div key={header}>
-                    <input
-                      type="checkbox"
-                      value={header}
-                      onChange={(e) => {
-                        const { excludes } = this.state;
-                        const { value } = e.target;
-                        if (excludes.includes(value)) {
-                          excludes.splice(excludes.indexOf(value), 1);
-                        } else {
-                          excludes.push(value);
-                        }
-                        this.setState({ excludes });
-                      }}
-                    />
-                    {header}
-                  </div>
-                ))}
-              </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={this.handleClose}>close</Button>
-              {/* <Button onClick={handleClose}>Agree</Button> */}
-            </DialogActions>
-          </Dialog>
         </div>
       </>
     );
